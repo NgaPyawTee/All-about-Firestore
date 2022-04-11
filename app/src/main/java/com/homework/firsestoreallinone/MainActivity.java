@@ -3,6 +3,7 @@ package com.homework.firsestoreallinone;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 
 import android.os.Bundle;
 import android.view.View;
@@ -36,10 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
     private CollectionReference collRef = db.collection("Notebook 2");
-    private DocumentReference docRef = collRef.document("FireStoreTest");
-
-    private static final String KEY_TITLE = "Title";
-    private static final String KEY_DESCRIPTION = "description";
+    private DocumentSnapshot lastResult;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +67,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void OnLoad(View view) {
-        Task task1 = collRef.whereGreaterThan("priority", 3).orderBy("priority", Query.Direction.DESCENDING).get();
+        Query query;
+        if (lastResult == null) {
+            query = collRef.orderBy("priority").limit(3);
+        } else {
+            query = collRef.orderBy("priority").startAfter(lastResult).limit(3);
+        }
+
+        query.get().addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+            @Override
+            public void onSuccess(QuerySnapshot querySnapshot) {
+                String data = "";
+
+                for (QueryDocumentSnapshot queryDocumentSnapshot : querySnapshot) {
+                    Note note = queryDocumentSnapshot.toObject(Note.class);
+                    note.setID(queryDocumentSnapshot.getId());
+
+                    String title = note.getTitle();
+                    String description = note.getDescription();
+                    String id = note.getID();
+                    int priority = note.getPriority();
+
+                    data += "ID: " + id + "\nTitle: " + title + "\nDescription: " + description + "Priority: " + priority + "\n\n";
+                }
+                if (querySnapshot.size() > 0) {
+                    data += "_______________\n\n";
+                    tvOne.append(data);
+
+                    lastResult = querySnapshot.getDocuments().get(querySnapshot.size() - 1);
+                }else
+                    Toast.makeText(MainActivity.this, "No more data", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+
+       /* Task task1 = collRef.whereGreaterThan("priority", 3).orderBy("priority", Query.Direction.DESCENDING).get();
 
         Task task2 = collRef.whereLessThan("priority", 3).orderBy("priority", Query.Direction.DESCENDING).get();
 
@@ -94,9 +127,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        });
+        });*/
     }
 
+    /*
     @Override
     protected void onStart() {
         super.onStart();
@@ -123,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
-    }
+    }*/
 
     /*
     public void OnUpdateDesc(View view) {
